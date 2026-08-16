@@ -191,7 +191,44 @@
   <div id="reader"></div>
 
   <div id="status"></div>
+<div
+  id="liveStats"
+  style="
+    margin-top:18px;
+    padding:18px;
+    background:#eef5ff;
+    border-radius:12px;
+    text-align:center;
+    display:none;
+  "
+>
+  <div
+    id="statsShow"
+    style="
+      font-size:22px;
+      font-weight:bold;
+      margin-bottom:8px;
+    "
+  ></div>
 
+  <div style="font-size:20px;">
+    已入場：
+    <b id="checkedInCount">0</b>
+    /
+    <b id="totalCount">0</b>
+  </div>
+
+  <div
+    style="
+      margin-top:6px;
+      font-size:16px;
+      color:#666;
+    "
+  >
+    尚未入場：
+    <b id="remainingCount">0</b>
+  </div>
+</div>
   <div id="counter">
     本次已成功驗票：
     <b id="count">0</b>
@@ -270,7 +307,7 @@ function startScanner() {
 
   currentShowBox.innerText =
     "目前驗票：" + show;
-
+loadStats();
 
   scanner =
     new Html5Qrcode("reader");
@@ -447,25 +484,37 @@ function handleResult(response) {
 
   // 正常入場
   if (
-    response.status === "success"
-  ) {
+  response.status === "success"
+) {
 
-    successCount++;
+  successCount++;
 
-    document
-      .getElementById("count")
-      .innerText =
-      successCount;
+  document
+    .getElementById("count")
+    .innerText =
+    successCount;
 
+  // ⭐ 更新即時入場人數
+  loadStats();
 
-    showResult(
-      "success",
-      "✅ 入場成功",
-      response.ticketType,
-      response.name +
-      "<br>" +
-      response.ticketId
-    );
+  // ⭐ 成功時嘗試震動
+  if (navigator.vibrate) {
+    navigator.vibrate(150);
+  }
+
+  showResult(
+    "success",
+    "✅ 入場成功",
+    response.ticketType,
+    response.name +
+    "<br>" +
+    response.ticketId
+  );
+
+  resumeAfterDelay(1500);
+
+  return;
+}
 
 
     resumeAfterDelay(1500);
@@ -733,8 +782,77 @@ function resetControls() {
     false;
 
 }
+function loadStats() {
 
+  const show =
+    document.getElementById("show").value;
+
+  if (!show) {
+    return;
+  }
+
+  fetch(
+    GAS_URL,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "text/plain;charset=utf-8"
+      },
+
+      body:
+        JSON.stringify({
+          action: "stats",
+          currentShow: show
+        })
+    }
+  )
+
+  .then(function(response) {
+    return response.json();
+  })
+
+  .then(function(data) {
+
+    document
+      .getElementById("liveStats")
+      .style.display =
+      "block";
+
+    document
+      .getElementById("statsShow")
+      .innerText =
+      data.currentShow;
+
+    document
+      .getElementById("checkedInCount")
+      .innerText =
+      data.checkedIn;
+
+    document
+      .getElementById("totalCount")
+      .innerText =
+      data.total;
+
+    document
+      .getElementById("remainingCount")
+      .innerText =
+      data.remaining;
+
+  })
+
+  .catch(function(error) {
+
+    console.log(
+      "統計載入失敗",
+      error
+    );
+
+  });
+}
 </script>
 
 </body>
 </html>
+
