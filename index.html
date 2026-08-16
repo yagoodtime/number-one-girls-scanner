@@ -190,50 +190,8 @@
 
   <div id="reader"></div>
 
-  <div id="status"></div>
-<div
-  id="liveStats"
-  style="
-    margin-top:18px;
-    padding:18px;
-    background:#eef5ff;
-    border-radius:12px;
-    text-align:center;
-    display:none;
-  "
->
-  <div
-    id="statsShow"
-    style="
-      font-size:22px;
-      font-weight:bold;
-      margin-bottom:8px;
-    "
-  ></div>
-
-  <div style="font-size:20px;">
-    已入場：
-    <b id="checkedInCount">0</b>
-    /
-    <b id="totalCount">0</b>
-  </div>
-
-  <div
-    style="
-      margin-top:6px;
-      font-size:16px;
-      color:#666;
-    "
-  >
-    尚未入場：
-    <b id="remainingCount">0</b>
-  </div>
-</div>
-  <div id="reader"></div>
-
 <div id="status"></div>
 
-<!-- 即時入場統計 -->
 <!-- 即時入場統計 -->
 <div
   id="liveStats"
@@ -559,13 +517,6 @@ function handleResult(response) {
 
   return;
 }
-
-
-    resumeAfterDelay(1500);
-
-    return;
-  }
-
 
   // 場次不符
   if (
