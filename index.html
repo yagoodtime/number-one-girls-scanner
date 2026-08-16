@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Number One Girls 驗票</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+    #reader {
+      width: 100%;
+      margin-top: 25px;
+    }
+
+    button {
+      width: 100%;
+      padding: 18px;
+      margin-top: 20px;
+      border: 0;
+      border-radius: 12px;
+      background: #222;
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    #result {
+      margin-top: 25px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+<div class="card">
+
+  <h1>Number One Girls</h1>
+
+  <p>工作人員驗票系統</p>
+
+  <button onclick="startScanner()">
+    📷 開啟相機
+  </button>
+
+  <div id="reader"></div>
+
+  <div id="result">
+    等待掃描
+  </div>
+
+</div>
+
+
+<script>
+
+let scanner;
+
+function startScanner() {
+
+  scanner =
+    new Html5Qrcode("reader");
+
+  scanner.start(
+
+    {
+      facingMode: "environment"
+    },
+
+    {
+      fps: 10,
+
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    },
+
+    function(decodedText) {
+
+      document.getElementById("result")
+        .innerHTML =
+        "掃描成功！<br><br>" +
+        decodedText;
+
+    },
+
+    function(errorMessage) {
+
+      // 掃描過程中的辨識失敗不用顯示
+
+    }
+
+  )
+
+  .catch(function(err) {
+
+    document.getElementById("result")
+      .innerHTML =
+      "❌ 無法開啟相機<br><br>" +
+      err;
+
+  });
+
+}
+
+</script>
+
+</body>
+
+</html>
