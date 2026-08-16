@@ -229,6 +229,19 @@
     <b id="remainingCount">0</b>
   </div>
 </div>
+  <div id="reader"></div>
+
+<div id="status"></div>
+
+<!-- 即時入場統計 -->
+<div id="liveStats" ...>
+   ...
+</div>
+
+<!-- 本工作人員驗票數 -->
+<div id="counter">
+   ...
+</div>
   <div id="counter">
     本次已成功驗票：
     <b id="count">0</b>
@@ -842,14 +855,20 @@ function loadStats() {
 
   })
 
-  .catch(function(error) {
+ .catch(function(error) {
 
-    console.log(
-      "統計載入失敗",
-      error
-    );
+  const box =
+    document.getElementById("liveStats");
 
-  });
+  box.style.display = "block";
+
+  box.style.background = "#ffebee";
+
+  box.innerHTML =
+    "<b style='color:#b71c1c;'>統計載入失敗</b><br>" +
+    error.message;
+
+});
 }
 </script>
 
