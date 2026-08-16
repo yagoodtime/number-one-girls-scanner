@@ -2,7 +2,6 @@
 <html lang="zh-TW">
 
 <head>
-
   <meta charset="UTF-8">
 
   <meta
@@ -15,54 +14,136 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial, "Noto Sans TC", sans-serif;
       background: #f5f5f5;
       margin: 0;
-      padding: 20px;
+      padding: 18px;
     }
 
     .card {
-      max-width: 500px;
+      max-width: 520px;
       margin: auto;
       background: white;
-      padding: 25px;
+      padding: 24px;
       border-radius: 20px;
-      text-align: center;
+      box-shadow: 0 4px 18px rgba(0,0,0,.08);
     }
 
     h1 {
-      margin-bottom: 5px;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    select,
+    input,
+    button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 15px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+
+    select,
+    input {
+      border: 1px solid #ccc;
+      background: white;
+    }
+
+    button {
+      border: none;
+      background: #222;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .5;
+    }
+
+    #stopBtn {
+      display: none;
+      background: #777;
     }
 
     #reader {
       width: 100%;
-      margin-top: 25px;
+      margin-top: 18px;
     }
 
-    button {
-      width: 100%;
-      padding: 18px;
-      margin-top: 20px;
-      border: 0;
-      border-radius: 12px;
-      background: #222;
-      color: white;
+    #status {
+      display: none;
+      margin-top: 18px;
+      padding: 22px;
+      border-radius: 16px;
+      text-align: center;
+    }
+
+    .success {
+      background: #e8f5e9;
+      color: #1b5e20;
+    }
+
+    .wrong {
+      background: #ffebee;
+      color: #b71c1c;
+    }
+
+    .used {
+      background: #fff8e1;
+      color: #8d6e00;
+    }
+
+    .invalid {
+      background: #ffebee;
+      color: #b71c1c;
+    }
+
+    .processing {
+      background: #eeeeee;
+      color: #333;
+    }
+
+    .big {
+      font-size: 38px;
+      font-weight: bold;
+      margin: 12px 0;
+    }
+
+    .name {
+      font-size: 22px;
+      margin: 8px 0;
+    }
+
+    #counter {
+      margin-top: 18px;
+      padding: 12px;
+      background: #f7f7f7;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    .current-show {
+      margin: 10px 0 18px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #f1f1f1;
+      text-align: center;
       font-size: 20px;
       font-weight: bold;
     }
-
-    #result {
-      margin-top: 25px;
-      font-size: 24px;
-      font-weight: bold;
-    }
-
   </style>
-
 </head>
-
 
 <body>
 
@@ -70,16 +151,51 @@
 
   <h1>Number One Girls</h1>
 
-  <p>工作人員驗票系統</p>
+  <div class="subtitle">
+    工作人員連續驗票
+  </div>
 
-  <button onclick="startScanner()">
-    📷 開啟相機
+  <select id="show">
+    <option value="">請選擇驗票場次</option>
+    <option value="空中場">空中場</option>
+    <option value="舞蹈場">舞蹈場</option>
+  </select>
+
+  <input
+    id="pin"
+    type="password"
+    inputmode="numeric"
+    placeholder="工作人員 PIN"
+  >
+
+  <button
+    id="startBtn"
+    onclick="startScanner()"
+  >
+    開始驗票
   </button>
+
+  <button
+    id="stopBtn"
+    onclick="stopScanner()"
+  >
+    停止驗票
+  </button>
+
+  <div
+    id="currentShow"
+    class="current-show"
+    style="display:none;"
+  ></div>
 
   <div id="reader"></div>
 
-  <div id="result">
-    等待掃描
+  <div id="status"></div>
+
+  <div id="counter">
+    本次已成功驗票：
+    <b id="count">0</b>
+    張
   </div>
 
 </div>
@@ -87,58 +203,538 @@
 
 <script>
 
-let scanner;
+const GAS_URL =
+  "https://script.google.com/macros/s/AKfycbxDYqtdwKzLg1PlBoxqGFj6vM4tkRiO5_28xr7u-T9qVlF5EoQh9k0wiVKbm2vYtN28/exec";
+
+
+let scanner = null;
+
+let scanning = false;
+
+let processing = false;
+
+let successCount = 0;
+
+let lastTicket = "";
+
+let lastScanTime = 0;
+
+
+// ========================================
+// 開始掃描
+// ========================================
 
 function startScanner() {
+
+  const show =
+    document.getElementById("show").value;
+
+  const pin =
+    document.getElementById("pin").value;
+
+
+  if (!show) {
+
+    alert("請先選擇空中場或舞蹈場");
+
+    return;
+  }
+
+
+  if (!pin) {
+
+    alert("請輸入工作人員 PIN");
+
+    return;
+  }
+
+
+  document.getElementById("show").disabled =
+    true;
+
+  document.getElementById("pin").disabled =
+    true;
+
+  document.getElementById("startBtn")
+    .style.display = "none";
+
+  document.getElementById("stopBtn")
+    .style.display = "block";
+
+
+  const currentShowBox =
+    document.getElementById("currentShow");
+
+  currentShowBox.style.display =
+    "block";
+
+  currentShowBox.innerText =
+    "目前驗票：" + show;
+
 
   scanner =
     new Html5Qrcode("reader");
 
+
+  const config = {
+
+    fps: 10,
+
+    qrbox: function(
+      viewfinderWidth,
+      viewfinderHeight
+    ) {
+
+      const size =
+        Math.floor(
+          Math.min(
+            viewfinderWidth,
+            viewfinderHeight
+          ) * 0.7
+        );
+
+      return {
+        width: size,
+        height: size
+      };
+    }
+
+  };
+
+
   scanner.start(
 
     {
-      facingMode: "environment"
+      facingMode:
+        "environment"
     },
 
-    {
-      fps: 10,
+    config,
 
-      qrbox: {
-        width: 250,
-        height: 250
-      }
-    },
-
-    function(decodedText) {
-
-      document.getElementById("result")
-        .innerHTML =
-        "掃描成功！<br><br>" +
-        decodedText;
-
-    },
+    onScanSuccess,
 
     function(errorMessage) {
 
-      // 掃描過程中的辨識失敗不用顯示
+      // 正常掃描時大量辨識失敗，
+      // 不需要顯示。
 
     }
 
   )
 
+  .then(function() {
+
+    scanning = true;
+
+  })
+
   .catch(function(err) {
 
-    document.getElementById("result")
-      .innerHTML =
-      "❌ 無法開啟相機<br><br>" +
-      err;
+    alert(
+      "無法開啟相機：" +
+      err
+    );
+
+    resetControls();
 
   });
+
+}
+
+
+// ========================================
+// 掃到 QR
+// ========================================
+
+function onScanSuccess(decodedText) {
+
+  if (processing) {
+    return;
+  }
+
+
+  const ticketId =
+    String(decodedText).trim();
+
+
+  // 防止鏡頭短時間內重複讀同一張票
+  const now =
+    Date.now();
+
+  if (
+    ticketId === lastTicket &&
+    now - lastScanTime < 3000
+  ) {
+
+    return;
+  }
+
+
+  lastTicket =
+    ticketId;
+
+  lastScanTime =
+    now;
+
+
+  processing =
+    true;
+
+
+  const show =
+    document.getElementById("show").value;
+
+  const pin =
+    document.getElementById("pin").value;
+
+
+  showProcessing(ticketId);
+
+
+  fetch(
+    GAS_URL,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "text/plain;charset=utf-8"
+      },
+
+      body:
+        JSON.stringify({
+          ticketId: ticketId,
+          currentShow: show,
+          pin: pin
+        })
+    }
+  )
+
+  .then(function(response) {
+
+    return response.json();
+
+  })
+
+  .then(function(response) {
+
+    handleResult(response);
+
+  })
+
+  .catch(function(error) {
+
+    showResult(
+      "invalid",
+      "❌ 系統連線錯誤",
+      "",
+      error.message
+    );
+
+    resumeAfterDelay(2500);
+
+  });
+
+}
+
+
+// ========================================
+// 處理 GAS 回傳結果
+// ========================================
+
+function handleResult(response) {
+
+
+  // 正常入場
+  if (
+    response.status === "success"
+  ) {
+
+    successCount++;
+
+    document
+      .getElementById("count")
+      .innerText =
+      successCount;
+
+
+    showResult(
+      "success",
+      "✅ 入場成功",
+      response.ticketType,
+      response.name +
+      "<br>" +
+      response.ticketId
+    );
+
+
+    resumeAfterDelay(1500);
+
+    return;
+  }
+
+
+  // 場次不符
+  if (
+    response.status === "wrong_show"
+  ) {
+
+    showResult(
+      "wrong",
+      "❌ 場次不符",
+      "此票為：" +
+      response.ticketType,
+      "目前驗票：" +
+      response.currentShow
+    );
+
+
+    resumeAfterDelay(2500);
+
+    return;
+  }
+
+
+  // 已經用過
+  if (
+    response.status === "used"
+  ) {
+
+    showResult(
+      "used",
+      "⚠️ 此票已使用",
+      response.ticketType,
+      response.name +
+      "<br>" +
+      "入場時間：" +
+      response.checkInTime
+    );
+
+
+    resumeAfterDelay(2500);
+
+    return;
+  }
+
+
+  // PIN 錯誤
+  if (
+    response.status === "bad_pin"
+  ) {
+
+    showResult(
+      "wrong",
+      "❌ PIN 錯誤",
+      "",
+      "請停止驗票並重新輸入 PIN"
+    );
+
+
+    processing =
+      false;
+
+    return;
+  }
+
+
+  // 無效票
+  showResult(
+    "invalid",
+    "❌ 無效票券",
+    "",
+    response.message ||
+    "查無此票"
+  );
+
+
+  resumeAfterDelay(2500);
+
+}
+
+
+// ========================================
+// 顯示處理中
+// ========================================
+
+function showProcessing(ticketId) {
+
+  const box =
+    document.getElementById("status");
+
+  box.className =
+    "processing";
+
+  box.style.display =
+    "block";
+
+  box.innerHTML =
+    "<b>查詢中...</b><br>" +
+    ticketId;
+
+}
+
+
+// ========================================
+// 顯示結果
+// ========================================
+
+function showResult(
+  type,
+  title,
+  bigText,
+  detail
+) {
+
+  const box =
+    document.getElementById("status");
+
+  box.className =
+    type;
+
+  box.style.display =
+    "block";
+
+
+  box.innerHTML =
+
+    "<div style='" +
+    "font-size:28px;" +
+    "font-weight:bold;" +
+    "'>" +
+    title +
+    "</div>" +
+
+
+    (
+      bigText
+      ?
+      "<div class='big'>" +
+      bigText +
+      "</div>"
+      :
+      ""
+    ) +
+
+
+    (
+      detail
+      ?
+      "<div class='name'>" +
+      detail +
+      "</div>"
+      :
+      ""
+    );
+
+}
+
+
+// ========================================
+// 幾秒後繼續掃
+// ========================================
+
+function resumeAfterDelay(ms) {
+
+  setTimeout(function() {
+
+    document
+      .getElementById("status")
+      .style.display =
+      "none";
+
+    processing =
+      false;
+
+  }, ms);
+
+}
+
+
+// ========================================
+// 停止驗票
+// ========================================
+
+function stopScanner() {
+
+  if (
+    !scanner ||
+    !scanning
+  ) {
+
+    resetControls();
+
+    return;
+  }
+
+
+  scanner
+    .stop()
+
+    .then(function() {
+
+      scanning =
+        false;
+
+      document
+        .getElementById("reader")
+        .innerHTML =
+        "";
+
+      resetControls();
+
+    })
+
+    .catch(function(err) {
+
+      alert(
+        "停止相機時發生錯誤：" +
+        err
+      );
+
+    });
+
+}
+
+
+// ========================================
+// 恢復設定
+// ========================================
+
+function resetControls() {
+
+  document
+    .getElementById("show")
+    .disabled =
+    false;
+
+  document
+    .getElementById("pin")
+    .disabled =
+    false;
+
+
+  document
+    .getElementById("startBtn")
+    .style.display =
+    "block";
+
+  document
+    .getElementById("stopBtn")
+    .style.display =
+    "none";
+
+  document
+    .getElementById("currentShow")
+    .style.display =
+    "none";
+
+
+  processing =
+    false;
 
 }
 
 </script>
 
 </body>
-
 </html>
